@@ -11,44 +11,68 @@
  *        .maps-sprite-photos-view-count		(Number of Views)
  */
 
-// TODO: show number of top-pictures in list
-// TODO: get new TEST set, as current has only small view counts
-// TODO: button to trigger extraction and toggle for auto-extraction on scroll
-
 (function grabStats() {
-    var grabBox = document.createElement('div'),
-        closeButton = document.createElement('button'),
-        countVisibleItemsText = document.createElement('div'),
-        countExtractedItemsText = document.createElement('div'),
-        countGlobalViewsText = document.createElement('div'),
-        resultBox = document.createElement('textarea');
+    window.STATSGRABBER = window.STATSGRABBER || {};
 
-    grabBox.setAttribute('style', 'position: absolute; top: 10px; left: 260px; background:rgba(175, 175, 175, 0.9); padding: 0.5em; box-shadow: 5px 5px 20px #6f6f6f;');
-    grabBox.setAttribute('id', 'grabBox');
-    closeButton.setAttribute('style', ' height: 2em; width: 2em; position: absolute; top: 0; right: 0;');
-    closeButton.innerHTML = 'X';
-    closeButton.addEventListener('click', function () {
-        document.body.removeChild(grabBox)
-    });
+    var globalStats = {
+        "countVisibleItems": 0,
+        "countExtractedItems": 0,
+        "countGlobalViews": 0,
+        "countMainPhotos": 0
+    };
 
-    grabBox.appendChild(closeButton);
-    countVisibleItemsText.setAttribute('style', ' height: 2em; display: inline-block;');
-    grabBox.appendChild(countVisibleItemsText);
-    countExtractedItemsText.setAttribute('style', ' height: 2em; display: inline-block; margin-left: 2em');
-    grabBox.appendChild(countExtractedItemsText);
-    countGlobalViewsText.setAttribute('style', ' height: 2em; display: inline-block; margin-left: 4em');
-    grabBox.appendChild(countGlobalViewsText);
+    var TRANSLATION = {
+        "countVisibleItems": "sichtbare Plätze ",
+        "countMainPhotos": "x Hauptbild",
+        "countExtractedItems": "extrahierte Fotos",
+        "countGlobalViews": "Ansichten insgesamt",
+        "callToAction": "Ansichtsdaten extrahieren und als CSV Datei herunterladen"
+    };
 
-    resultBox.setAttribute('style', 'width: 900px; height: 200px; display:block; border-top: 1px solid black; white-space: nowrap;');
-    resultBox.setAttribute('id', 'resultBox');
-    grabBox.appendChild(resultBox);
+    function setUpHtml() {
+        var oldGrabBox = document.querySelector('#grabBox');
+        if (oldGrabBox) {
+            oldGrabBox.parentNode.removeChild(oldGrabBox);
+        }
+        var grabBox = document.createElement('div'),
+            closeButton = document.createElement('button'),
+            ulElement = document.createElement('ul');
 
-    extractData();
-    document.querySelector('.section-scrollbox').addEventListener('DOMSubtreeModified', function () {
-        extractData()
-    }, false);
-    /*final step: append box to DOM*/
-    document.body.appendChild(grabBox);
+        grabBox.setAttribute('style', 'position: absolute; top: 10px; left: 260px; background:rgba(175, 175, 175, 0.9); padding: 0.5em; box-shadow: 5px 5px 20px #6f6f6f;');
+        grabBox.setAttribute('id', 'grabBox');
+        closeButton.setAttribute('style', ' height: 2em; width: 2em; position: absolute; top: 0; right: 0;');
+        closeButton.innerHTML = 'X';
+        closeButton.addEventListener('click', function () {
+            document.body.removeChild(grabBox)
+        });
+
+        grabBox.appendChild(closeButton);
+        grabBox.appendChild(ulElement);
+
+        var text = TRANSLATION["countVisibleItems"] + " : " + globalStats["countVisibleItems"]
+            + " ( " + globalStats["countMainPhotos"] + " " + TRANSLATION["countMainPhotos"] + ")";
+        createElementAndAppendTo('li', text, ulElement);
+        text = TRANSLATION["countExtractedItems"] + " : " + globalStats["countExtractedItems"];
+        createElementAndAppendTo('li', text, ulElement);
+        text = TRANSLATION["countGlobalViews"] + " : " + globalStats["countGlobalViews"];
+        createElementAndAppendTo('li', text, ulElement);
+
+        var liAction = createElementAndAppendTo('li', "", ulElement);
+        var aClick = createElementAndAppendTo('a', TRANSLATION.callToAction, liAction);
+        aClick.setAttribute("onclick", "window.STATSGRABBER.extractData(); window.STATSGRABBER.setUpHtml();");
+
+        function createElementAndAppendTo(tag, nodeContent, parent) {
+            var element = document.createElement(tag);
+            element.innerHTML = nodeContent;
+            parent.appendChild(element);
+            return element;
+        }
+
+        /*final step: append box to DOM*/
+        document.body.appendChild(grabBox);
+    }
+
+    setUpHtml();
 
     function isSameImage(mainPhotoCSS, currentPhoto) {
         // main image: background-image:url(//
@@ -65,24 +89,38 @@
         }
     }
 
-    function getImageUID(imgSrc){
+    function getImageUID(imgSrc) {
         var mainUrlParts = imgSrc.slice(23).split('/');// trim 'background-image:url(//' and get content between slashes
         return mainUrlParts[1] + '/' + mainUrlParts[2];
 
     }
 
-    function getViewCountAsNumber(node){
+    function getViewCountAsNumber(node) {
         // remove decimal dots
-        return node ? parseInt(node.innerText.split('.').join(''),10) : undefined;
+        return node ? parseInt(node.innerText.split('.').join(''), 10) : undefined;
+    }
 
+    function exportToCsvFile(csvContent) {
+        // taken from http://stackoverflow.com/a/14966131/2354488
+        var encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "googleStats.csv");
+        document.body.appendChild(link); // Required for FF
+        link.click(); // This will download the data file
+        link.parentNode.removeChild(link);
     }
 
     function extractData() {
-        var globalCount = 0;
+        globalStats.countGlobalViews = 0;
+        globalStats.countMainPhotos = 0;
+        globalStats.countExtractedItems = 0;
+        globalStats.countVisibleItems = 0;
+
         var resultArray = [];
         resultArray.push('title\taddress\tviews\tisMain\tsourceUID');
         var photoList = document.querySelectorAll('.section-photo-bucket-content');
-        countVisibleItemsText.innerHTML = '<b>' + photoList.length + '</b> sichtbar';
+
         photoList.forEach(function (entry) {
             var headerElement = entry.querySelector('.section-photo-bucket-header');
             //main photo is set via div with css background image
@@ -106,16 +144,26 @@
                     + isMainPhoto + '\t'
                     + (image ? getImageUID(image.src) : 'n/a'));
 
-                globalCount += (viewCount || 0);
+                globalStats.countGlobalViews += (viewCount || 0);
             });
 
             if (containsMainPhoto) {
+                globalStats.countMainPhotos += 1;
                 headerElement.setAttribute('style', 'background-color:rgba(181, 255, 157, 0.5)');
                 headerElement.setAttribute('title', 'ist Hauptfoto');
             }
         });
-        countExtractedItemsText.innerHTML = '<b>' + (resultArray.length - 1) + '</b> extrahiert\t';
-        countGlobalViewsText.innerHTML = '<b>' + globalCount + '</b> Views insgesamt\t(Fotoliste scrollen aktualisiert hier automatisch)';
-        resultBox.value = resultArray.join('\n');
+        globalStats.countVisibleItems = photoList.length;
+        globalStats.countExtractedItems = resultArray.length - 1;
+
+        var csvFormat = resultArray.join('\n');
+
+        exportToCsvFile(csvFormat);
+        //window.open(encodeURI(csvFormat));
     }
+
+    window.STATSGRABBER.extractData = extractData;
+    window.STATSGRABBER.setUpHtml = setUpHtml;
+    window.STATSGRABBER.globalStats = globalStats;
+    window.STATSGRABBER.TRANSLATION = TRANSLATION;
 })();
