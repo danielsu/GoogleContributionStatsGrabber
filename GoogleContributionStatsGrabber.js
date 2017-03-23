@@ -11,6 +11,10 @@
  *        .maps-sprite-photos-view-count		(Number of Views)
  */
 
+// TODO: show number of top-pictures in list
+// TODO: make "show ID" optional to increase performance, use checkbox to toggle
+// TODO: get new TEST set, as current has only small view counts
+// TODO: button to trigger extraction and toggle for auto-extraction on scroll
 
 (function grabStats() {
     var grabBox = document.createElement('div'),
@@ -63,6 +67,12 @@
         }
     }
 
+    function getViewCountAsNumber(node){
+        // remove decimal dots
+        return node ? parseInt(node.innerText.split('.').join(''),10) : undefined;
+
+    }
+
     function extractData() {
         var globalCount = 0;
         var resultArray = [];
@@ -79,7 +89,8 @@
             var containsMainPhoto = false;
 
             photoList.forEach(function (photoContainer) {
-                var viewCount = photoContainer.querySelector('.section-photo-bucket-caption-label');
+                var viewCountString = photoContainer.querySelector('.section-photo-bucket-caption-label');
+                var viewCount = getViewCountAsNumber(viewCountString);
                 var image = photoContainer.querySelector('img');
                 var isMainPhoto = isSameImage(mainPhotoCssBgUrl, image);
 
@@ -87,11 +98,11 @@
 
                 resultArray.push(titleContent + '\t'
                     + addressContent + '\t'
-                    + (viewCount ? parseInt(viewCount.innerHTML,10) : 'n/a') + '\t'
+                    + (viewCount || 'n/a') + '\t'
                     + isMainPhoto + '\t'
-                    + (image ? image.src : 'n/a'));
+               //     + (image ? image.src : 'n/a'));
 
-                globalCount += (viewCount ? parseInt(viewCount.innerHTML,10) : 0);
+                globalCount += (viewCount || 0);
             });
 
             if (containsMainPhoto) {
