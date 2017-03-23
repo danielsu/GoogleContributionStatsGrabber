@@ -99,7 +99,7 @@
                 resultArray.push(titleContent + '\t'
                     + addressContent + '\t'
                     + (viewCount || 'n/a') + '\t'
-                    + isMainPhoto + '\t'
+                    + isMainPhoto + '\t' );
                //     + (image ? image.src : 'n/a'));
 
                 globalCount += (viewCount || 0);
