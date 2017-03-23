@@ -1,6 +1,6 @@
 {
   "name": "google-contribution-stats-grabber",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "script/bookmarklet to show list your google maps contributions as list for usage e.g. in excel",
   "main": "GoogleContributionStatsGrabber.js",
   "directories": {
