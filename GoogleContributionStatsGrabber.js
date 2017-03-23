@@ -12,7 +12,6 @@
  */
 
 // TODO: show number of top-pictures in list
-// TODO: make "show ID" optional to increase performance, use checkbox to toggle
 // TODO: get new TEST set, as current has only small view counts
 // TODO: button to trigger extraction and toggle for auto-extraction on scroll
 
@@ -61,10 +60,15 @@
             // handle live loading
             return false;
         } else {
-            var mainUrlParts = mainPhotoCSS.slice(23).split('/');// trim 'background-image:url(//' and get content between slashes
-            var mainUrl = mainUrlParts[0] + '/' + mainUrlParts[1] + '/' + mainUrlParts[2];
+            var mainUrl = getImageUID(mainPhotoCSS);
             return currentPhoto.src.indexOf(mainUrl) !== -1;
         }
+    }
+
+    function getImageUID(imgSrc){
+        var mainUrlParts = imgSrc.slice(23).split('/');// trim 'background-image:url(//' and get content between slashes
+        return mainUrlParts[1] + '/' + mainUrlParts[2];
+
     }
 
     function getViewCountAsNumber(node){
@@ -76,7 +80,7 @@
     function extractData() {
         var globalCount = 0;
         var resultArray = [];
-        resultArray.push('title\taddress\tviews\tisMain\tsource');
+        resultArray.push('title\taddress\tviews\tisMain\tsourceUID');
         var photoList = document.querySelectorAll('.section-photo-bucket-content');
         countVisibleItemsText.innerHTML = '<b>' + photoList.length + '</b> sichtbar';
         photoList.forEach(function (entry) {
@@ -99,8 +103,8 @@
                 resultArray.push(titleContent + '\t'
                     + addressContent + '\t'
                     + (viewCount || 'n/a') + '\t'
-                    + isMainPhoto + '\t' );
-               //     + (image ? image.src : 'n/a'));
+                    + isMainPhoto + '\t'
+                    + (image ? getImageUID(image.src) : 'n/a'));
 
                 globalCount += (viewCount || 0);
             });
