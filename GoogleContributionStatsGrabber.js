@@ -8,7 +8,7 @@
  *     .section-photo-bucket-subtitle	(Address)
  *     .section-photo-bucket-photos		(multiple photos possible)
  *        .section-photo-bucket-photo-container
- *        .maps-sprite-photos-view-count		(Number of Views)
+ *        .maps-sprite-photos-view-count		(Number of Views) can appear multiple times, incl. 'display none' versions
  */
 
 (function grabStats() {
@@ -22,12 +22,20 @@
     };
 
     var TRANSLATION = {
-        "countVisibleItems": "sichtbare Plätze ",
-        "countMainPhotos": "x Hauptbild",
-        "countExtractedItems": "extrahierte Fotos",
-        "countGlobalViews": "Ansichten insgesamt",
-        "callToAction": "Ansichtsdaten extrahieren und als CSV Datei herunterladen"
+        "countVisibleItems": "Visible Locations ",
+        "countMainPhotos": "x Main Photo",
+        "countExtractedItems": "Extracted Photos",
+        "countGlobalViews": "Views overall",
+        "callToAction": "Extract view data and download as CSV-file.",
+        "isMainPhoto": "is main photo"
     };
+    // var TRANSLATION = {
+    //     "countVisibleItems": "sichtbare Plätze ",
+    //     "countMainPhotos": "x Hauptbild",
+    //     "countExtractedItems": "extrahierte Fotos",
+    //     "countGlobalViews": "Ansichten insgesamt",
+    //     "callToAction": "Ansichtsdaten extrahieren und als CSV Datei herunterladen"
+    // };
 
     function setUpHtml() {
         var oldGrabBox = document.querySelector('#grabBox');
@@ -38,7 +46,7 @@
             closeButton = document.createElement('button'),
             ulElement = document.createElement('ul');
 
-        grabBox.setAttribute('style', 'position: absolute; top: 10px; left: 260px; background:rgba(175, 175, 175, 0.9); padding: 0.5em; box-shadow: 5px 5px 20px #6f6f6f;');
+        grabBox.setAttribute('style', 'position: absolute; top: 10px; left: 260px; background:rgba(175, 175, 175, 0.9); padding: 0.5em; box-shadow: 5px 5px 20px #6f6f6f;z-index:10;');
         grabBox.setAttribute('id', 'grabBox');
         closeButton.setAttribute('style', ' height: 2em; width: 2em; position: absolute; top: 0; right: 0;');
         closeButton.innerHTML = 'X';
@@ -131,8 +139,15 @@
             var containsMainPhoto = false;
 
             photoList.forEach(function (photoContainer) {
-                var viewCountString = photoContainer.querySelector('.section-photo-bucket-caption-label');
-                var viewCount = getViewCountAsNumber(viewCountString);
+                var viewCount = 0;
+                var viewCountTemp;
+                var viewCountStringList = photoContainer.querySelectorAll('.section-photo-bucket-caption-label');
+                // view count DIV appears multiple times, but only one has text inside
+                viewCountStringList.forEach(function (possibleLabel) {
+                    viewCountTemp = getViewCountAsNumber(possibleLabel);
+                    viewCount = viewCountTemp ? viewCountTemp : viewCount;
+                });
+
                 var image = photoContainer.querySelector('img');
                 var isMainPhoto = isSameImage(mainPhotoCssBgUrl, image);
 
@@ -150,7 +165,7 @@
             if (containsMainPhoto) {
                 globalStats.countMainPhotos += 1;
                 headerElement.setAttribute('style', 'background-color:rgba(181, 255, 157, 0.5)');
-                headerElement.setAttribute('title', 'ist Hauptfoto');
+                headerElement.setAttribute('title', TRANSLATION.isMainPhoto);
             }
         });
         globalStats.countVisibleItems = photoList.length;
